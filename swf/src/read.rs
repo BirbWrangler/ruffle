@@ -663,7 +663,7 @@ impl<'a> Reader<'a> {
         Ok(color_transform)
     }
 
-    fn read_color_transform(&mut self) -> Result<ColorTransform> {
+    pub fn read_color_transform(&mut self) -> Result<ColorTransform> {
         let mut bits = self.bits();
         let has_add = bits.read_bit()?;
         let has_mult = bits.read_bit()?;
@@ -1166,7 +1166,7 @@ impl<'a> Reader<'a> {
         })
     }
 
-    fn read_define_font_align_zones(&mut self) -> Result<Tag<'a>> {
+    pub fn read_define_font_align_zones(&mut self) -> Result<Tag<'a>> {
         let id = self.read_character_id()?;
         let thickness = FontThickness::from_u8(self.read_u8()? >> 6)
             .ok_or_else(|| Error::invalid_data("Invalid font thickness type."))?;
@@ -1193,7 +1193,7 @@ impl<'a> Reader<'a> {
         Ok(zone)
     }
 
-    fn read_define_font_info(&mut self, version: u8) -> Result<Tag<'a>> {
+    pub fn read_define_font_info(&mut self, version: u8) -> Result<Tag<'a>> {
         let id = self.read_u16()?;
 
         let font_name_len = self.read_u8()?;
@@ -1234,7 +1234,7 @@ impl<'a> Reader<'a> {
         })))
     }
 
-    fn read_define_font_name(&mut self) -> Result<Tag<'a>> {
+    pub fn read_define_font_name(&mut self) -> Result<Tag<'a>> {
         Ok(Tag::DefineFontName {
             id: self.read_character_id()?,
             name: self.read_str()?,
