@@ -22,8 +22,8 @@ pub mod error;
 pub mod extensions;
 pub mod read;
 mod string;
-mod tag_code;
-mod types;
+pub mod tag_code;
+pub mod types;
 pub mod write;
 
 #[cfg(test)]
