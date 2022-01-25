@@ -9,8 +9,8 @@ use ruffle_core::backend::render::{srgb_to_linear, swf, BitmapHandle, BitmapSour
 use ruffle_core::shape_utils::{DistilledShape, DrawCommand, DrawPath};
 
 pub struct ShapeTessellator {
-    fill_tess: FillTessellator,
-    stroke_tess: StrokeTessellator,
+    pub fill_tess: FillTessellator,
+    pub stroke_tess: StrokeTessellator,
 }
 
 impl ShapeTessellator {
