@@ -1233,183 +1233,183 @@ impl<'gc> MovieClip<'gc> {
 
         // This map will maintain a map of depth -> placement commands.
         // TODO: Move this to UpdateContext to avoid allocations.
-        let mut goto_commands: Vec<GotoPlaceObject<'_>> = vec![];
+        // let mut goto_commands: Vec<GotoPlaceObject<'_>> = vec![];
 
-        self.0.write(context.gc_context).stop_audio_stream(context);
+        // self.0.write(context.gc_context).stop_audio_stream(context);
 
-        let is_rewind = if frame < self.current_frame() {
-            // Because we can only step forward, we have to start at frame 1
-            // when rewinding.
-            self.0.write(context.gc_context).tag_stream_pos = 0;
-            self.0.write(context.gc_context).current_frame = 0;
+        // let is_rewind = if frame < self.current_frame() {
+        //     // Because we can only step forward, we have to start at frame 1
+        //     // when rewinding.
+        //     self.0.write(context.gc_context).tag_stream_pos = 0;
+        //     self.0.write(context.gc_context).current_frame = 0;
 
-            // Remove all display objects that were created after the destination frame.
-            // TODO: We want to do something like self.children.retain here,
-            // but BTreeMap::retain does not exist.
-            // TODO: AS3 children don't live on the depth list. Do they respect
-            // or ignore GOTOs?
-            let children: SmallVec<[_; 16]> = self
-                .0
-                .read()
-                .container
-                .iter_children_by_depth()
-                .filter_map(|(depth, clip)| {
-                    if clip.place_frame() > frame {
-                        Some((depth, clip))
-                    } else {
-                        None
-                    }
-                })
-                .collect();
-            for (_depth, child) in children {
-                if !child.placed_by_script() {
-                    self.remove_child(context, child, Lists::all());
-                } else {
-                    self.remove_child(context, child, Lists::DEPTH);
-                }
-            }
-            true
-        } else {
-            false
-        };
+        //     // Remove all display objects that were created after the destination frame.
+        //     // TODO: We want to do something like self.children.retain here,
+        //     // but BTreeMap::retain does not exist.
+        //     // TODO: AS3 children don't live on the depth list. Do they respect
+        //     // or ignore GOTOs?
+        //     let children: SmallVec<[_; 16]> = self
+        //         .0
+        //         .read()
+        //         .container
+        //         .iter_children_by_depth()
+        //         .filter_map(|(depth, clip)| {
+        //             if clip.place_frame() > frame {
+        //                 Some((depth, clip))
+        //             } else {
+        //                 None
+        //             }
+        //         })
+        //         .collect();
+        //     for (_depth, child) in children {
+        //         if !child.placed_by_script() {
+        //             self.remove_child(context, child, Lists::all());
+        //         } else {
+        //             self.remove_child(context, child, Lists::DEPTH);
+        //         }
+        //     }
+        //     true
+        // } else {
+        //     false
+        // };
 
-        // Step through the intermediate frames, and aggregate the deltas of each frame.
-        let mc = self.0.read();
-        let tag_stream_start = mc.static_data.swf.as_ref().as_ptr() as u64;
-        let mut frame_pos = mc.tag_stream_pos;
-        let data = mc.static_data.swf.clone();
-        let mut index = 0;
+        // // Step through the intermediate frames, and aggregate the deltas of each frame.
+        // let mc = self.0.read();
+        // let tag_stream_start = mc.static_data.swf.as_ref().as_ptr() as u64;
+        // let mut frame_pos = mc.tag_stream_pos;
+        // let data = mc.static_data.swf.clone();
+        // let mut index = 0;
 
-        // Sanity; let's make sure we don't seek way too far.
-        // TODO: This should be self.frames_loaded() when we implement that.
-        let clamped_frame = frame.min(mc.total_frames());
-        drop(mc);
+        // // Sanity; let's make sure we don't seek way too far.
+        // // TODO: This should be self.frames_loaded() when we implement that.
+        // let clamped_frame = frame.min(mc.total_frames());
+        // drop(mc);
 
-        let mut reader = data.read_from(frame_pos);
-        while self.current_frame() < clamped_frame && !reader.get_ref().is_empty() {
-            self.0.write(context.gc_context).current_frame += 1;
-            frame_pos = reader.get_ref().as_ptr() as u64 - tag_stream_start;
+        // let mut reader = data.read_from(frame_pos);
+        // while self.current_frame() < clamped_frame && !reader.get_ref().is_empty() {
+        //     self.0.write(context.gc_context).current_frame += 1;
+        //     frame_pos = reader.get_ref().as_ptr() as u64 - tag_stream_start;
 
-            use swf::TagCode;
-            let tag_callback = |reader: &mut SwfStream<'gc>, tag_code, tag_len| match tag_code {
-                TagCode::PlaceObject => {
-                    index += 1;
-                    let mut mc = self.0.write(context.gc_context);
+        //     use swf::TagCode;
+        //     let tag_callback = |reader: &mut SwfStream<'gc>, tag_code, tag_len| match tag_code {
+        //         TagCode::PlaceObject => {
+        //             index += 1;
+        //             let mut mc = self.0.write(context.gc_context);
 
-                    mc.goto_place_object(reader, tag_len, 1, &mut goto_commands, is_rewind, index)
-                }
-                TagCode::PlaceObject2 => {
-                    index += 1;
-                    let mut mc = self.0.write(context.gc_context);
+        //             mc.goto_place_object(reader, tag_len, 1, &mut goto_commands, is_rewind, index)
+        //         }
+        //         TagCode::PlaceObject2 => {
+        //             index += 1;
+        //             let mut mc = self.0.write(context.gc_context);
 
-                    mc.goto_place_object(reader, tag_len, 2, &mut goto_commands, is_rewind, index)
-                }
-                TagCode::PlaceObject3 => {
-                    index += 1;
-                    let mut mc = self.0.write(context.gc_context);
+        //             mc.goto_place_object(reader, tag_len, 2, &mut goto_commands, is_rewind, index)
+        //         }
+        //         TagCode::PlaceObject3 => {
+        //             index += 1;
+        //             let mut mc = self.0.write(context.gc_context);
 
-                    mc.goto_place_object(reader, tag_len, 3, &mut goto_commands, is_rewind, index)
-                }
-                TagCode::PlaceObject4 => {
-                    index += 1;
-                    let mut mc = self.0.write(context.gc_context);
+        //             mc.goto_place_object(reader, tag_len, 3, &mut goto_commands, is_rewind, index)
+        //         }
+        //         TagCode::PlaceObject4 => {
+        //             index += 1;
+        //             let mut mc = self.0.write(context.gc_context);
 
-                    mc.goto_place_object(reader, tag_len, 4, &mut goto_commands, is_rewind, index)
-                }
-                TagCode::RemoveObject => {
-                    self.goto_remove_object(reader, 1, context, &mut goto_commands, is_rewind)
-                }
-                TagCode::RemoveObject2 => {
-                    self.goto_remove_object(reader, 2, context, &mut goto_commands, is_rewind)
-                }
-                _ => Ok(()),
-            };
-            let _ = tag_utils::decode_tags(&mut reader, tag_callback, TagCode::ShowFrame);
-        }
-        let hit_target_frame = self.0.read().current_frame == frame;
+        //             mc.goto_place_object(reader, tag_len, 4, &mut goto_commands, is_rewind, index)
+        //         }
+        //         TagCode::RemoveObject => {
+        //             self.goto_remove_object(reader, 1, context, &mut goto_commands, is_rewind)
+        //         }
+        //         TagCode::RemoveObject2 => {
+        //             self.goto_remove_object(reader, 2, context, &mut goto_commands, is_rewind)
+        //         }
+        //         _ => Ok(()),
+        //     };
+        //     let _ = tag_utils::decode_tags(&mut reader, tag_callback, TagCode::ShowFrame);
+        // }
+        // let hit_target_frame = self.0.read().current_frame == frame;
 
-        // Run the list of goto commands to actually create and update the display objects.
-        let run_goto_command = |clip: MovieClip<'gc>,
-                                context: &mut UpdateContext<'_, 'gc, '_>,
-                                params: &GotoPlaceObject<'_>| {
-            use swf::PlaceObjectAction;
-            let child_entry = clip.child_by_depth(params.depth());
-            match (params.place_object.action, child_entry, is_rewind) {
-                // Apply final delta to display parameters.
-                // For rewinds, if an object was created before the final frame,
-                // it will exist on the final frame as well. Re-use this object
-                // instead of recreating.
-                // If the ID is 0, we are modifying a previous child. Otherwise, we're replacing it.
-                // If it's a rewind, we removed any dead children above, so we always
-                // modify the previous child.
-                (_, Some(prev_child), true) | (PlaceObjectAction::Modify, Some(prev_child), _) => {
-                    prev_child.apply_place_object(context, self.movie(), &params.place_object);
-                }
-                (swf::PlaceObjectAction::Replace(id), Some(prev_child), _) => {
-                    prev_child.replace_with(context, id);
-                    prev_child.apply_place_object(context, self.movie(), &params.place_object);
-                    prev_child.set_place_frame(context.gc_context, params.frame);
-                }
-                (PlaceObjectAction::Place(id), _, _)
-                | (swf::PlaceObjectAction::Replace(id), _, _) => {
-                    if let Some(child) =
-                        clip.instantiate_child(context, id, params.depth(), &params.place_object)
-                    {
-                        // Set the place frame to the frame where the object *would* have been placed.
-                        child.set_place_frame(context.gc_context, params.frame);
-                    }
-                }
-                _ => {
-                    log::error!(
-                        "Unexpected PlaceObject during goto: {:?}",
-                        params.place_object
-                    )
-                }
-            }
-        };
+        // // Run the list of goto commands to actually create and update the display objects.
+        // let run_goto_command = |clip: MovieClip<'gc>,
+        //                         context: &mut UpdateContext<'_, 'gc, '_>,
+        //                         params: &GotoPlaceObject<'_>| {
+        //     use swf::PlaceObjectAction;
+        //     let child_entry = clip.child_by_depth(params.depth());
+        //     match (params.place_object.action, child_entry, is_rewind) {
+        //         // Apply final delta to display parameters.
+        //         // For rewinds, if an object was created before the final frame,
+        //         // it will exist on the final frame as well. Re-use this object
+        //         // instead of recreating.
+        //         // If the ID is 0, we are modifying a previous child. Otherwise, we're replacing it.
+        //         // If it's a rewind, we removed any dead children above, so we always
+        //         // modify the previous child.
+        //         (_, Some(prev_child), true) | (PlaceObjectAction::Modify, Some(prev_child), _) => {
+        //             prev_child.apply_place_object(context, self.movie(), &params.place_object);
+        //         }
+        //         (swf::PlaceObjectAction::Replace(id), Some(prev_child), _) => {
+        //             prev_child.replace_with(context, id);
+        //             prev_child.apply_place_object(context, self.movie(), &params.place_object);
+        //             prev_child.set_place_frame(context.gc_context, params.frame);
+        //         }
+        //         (PlaceObjectAction::Place(id), _, _)
+        //         | (swf::PlaceObjectAction::Replace(id), _, _) => {
+        //             if let Some(child) =
+        //                 clip.instantiate_child(context, id, params.depth(), &params.place_object)
+        //             {
+        //                 // Set the place frame to the frame where the object *would* have been placed.
+        //                 child.set_place_frame(context.gc_context, params.frame);
+        //             }
+        //         }
+        //         _ => {
+        //             log::error!(
+        //                 "Unexpected PlaceObject during goto: {:?}",
+        //                 params.place_object
+        //             )
+        //         }
+        //     }
+        // };
 
-        // We have to be sure that queued actions are generated in the same order
-        // as if the playhead had reached this frame normally.
+        // // We have to be sure that queued actions are generated in the same order
+        // // as if the playhead had reached this frame normally.
 
-        // First, sort the goto commands in the order of execution.
-        // (Maybe it'd be better to keeps this list sorted as we create it?
-        // Currently `swap_remove` calls futz with the order; but we could use `remove`).
-        goto_commands.sort_by_key(|params| params.index);
+        // // First, sort the goto commands in the order of execution.
+        // // (Maybe it'd be better to keeps this list sorted as we create it?
+        // // Currently `swap_remove` calls futz with the order; but we could use `remove`).
+        // goto_commands.sort_by_key(|params| params.index);
 
-        // Then, run frames for children that were created before this frame.
-        goto_commands
-            .iter()
-            .filter(|params| params.frame < frame)
-            .for_each(|goto| run_goto_command(self, context, goto));
+        // // Then, run frames for children that were created before this frame.
+        // goto_commands
+        //     .iter()
+        //     .filter(|params| params.frame < frame)
+        //     .for_each(|goto| run_goto_command(self, context, goto));
 
-        if !is_implicit {
-            self.frame_constructed(context);
-        }
+        // if !is_implicit {
+        //     self.frame_constructed(context);
+        // }
 
-        // Next, run the final frame for the parent clip.
-        // Re-run the final frame without display tags (DoAction, StartSound, etc.)
-        // Note that this only happens if the frame exists and is loaded;
-        // e.g. gotoAndStop(9999) displays the final frame, but actions don't run!
-        if hit_target_frame {
-            self.0.write(context.gc_context).current_frame -= 1;
-            self.0.write(context.gc_context).tag_stream_pos = frame_pos;
-            self.run_frame_internal(context, false);
-        } else {
-            self.0.write(context.gc_context).current_frame = clamped_frame;
-        }
+        // // Next, run the final frame for the parent clip.
+        // // Re-run the final frame without display tags (DoAction, StartSound, etc.)
+        // // Note that this only happens if the frame exists and is loaded;
+        // // e.g. gotoAndStop(9999) displays the final frame, but actions don't run!
+        // if hit_target_frame {
+        //     self.0.write(context.gc_context).current_frame -= 1;
+        //     self.0.write(context.gc_context).tag_stream_pos = frame_pos;
+        //     self.run_frame_internal(context, false);
+        // } else {
+        //     self.0.write(context.gc_context).current_frame = clamped_frame;
+        // }
 
-        // Finally, run frames for children that are placed on this frame.
-        goto_commands
-            .iter()
-            .filter(|params| params.frame >= frame)
-            .for_each(|goto| run_goto_command(self, context, goto));
+        // // Finally, run frames for children that are placed on this frame.
+        // goto_commands
+        //     .iter()
+        //     .filter(|params| params.frame >= frame)
+        //     .for_each(|goto| run_goto_command(self, context, goto));
 
-        if !is_implicit {
-            self.avm2_root(context)
-                .unwrap_or_else(|| self.into())
-                .run_frame_scripts(context);
-            self.exit_frame(context);
-        }
+        // if !is_implicit {
+        //     self.avm2_root(context)
+        //         .unwrap_or_else(|| self.into())
+        //         .run_frame_scripts(context);
+        //     self.exit_frame(context);
+        // }
     }
 
     fn construct_as_avm1_object(
