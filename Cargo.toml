@@ -11,6 +11,7 @@ members = [
     "wstr",
     "scanner",
     "exporter",
+    "export_textures",
 
     "render",
     "render/canvas",
