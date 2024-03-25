@@ -37,7 +37,7 @@ mod ecma_conversions;
 pub mod events;
 pub mod focus_tracker;
 mod font;
-mod html;
+pub mod html;
 mod library;
 pub mod loader;
 pub mod matrix;
